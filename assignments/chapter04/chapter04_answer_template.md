@@ -11,9 +11,9 @@
 이 파일과 캡처 화면에는 실제 비밀번호, 전체 DB 접속 URL, API Key, 개인정보를 기록하지 않습니다.
 
 ```text
-GitHub 계정 또는 별칭:
-과제 작성일:
-사용한 AI 도구:
+GitHub 계정 또는 별칭: han-jaesun
+과제 작성일: 2026-10-06
+사용한 AI 도구: Claude
 ```
 
 ---
@@ -32,21 +32,24 @@ SHOW transaction_read_only;
 
 | 확인 항목 | 실제 결과 | 의미 |
 | --- | --- | --- |
-| current_database() |  |  |
-| current_user |  |  |
-| current_schema() |  |  |
-| search_path |  |  |
-| transaction_read_only |  |  |
+| current_database() | ai_database_book | 수업용 데이터베이스에 접속해 있다 |
+| current_user | hanjaesun | 이 사용자 권한으로 SQL이 실행된다 |
+| current_schema() | public | 스키마 이름을 생략하면 public에 테이블이 만들어진다 |
+| search_path | public, "$user" | 스키마 이름을 생략했을 때 public 스키마부터 테이블을 찾는다 |
+| transaction_read_only | off | 읽기 전용이 아니므로 테이블 생성과 데이터 변경이 가능하다 |
 
-- [ ] 현재 DB가 `ai_database_book`이다.
-- [ ] 변경 가능한 연결인지 확인했다.
-- [ ] 실행할 SQL 범위를 확인했다.
-- [ ] Auto-commit 상태를 확인했다.
+- [O] 현재 DB가 `ai_database_book`이다.
+- [O] 변경 가능한 연결인지 확인했다.
+- [O] 실행할 SQL 범위를 확인했다.
+- [O] Auto-commit 상태를 확인했다.
 
 ### 변경 SQL을 실행하기 전에 현재 DB와 실행 범위를 확인해야 하는 이유
 
 ```text
-
+INSERT, UPDATE, DELETE는 실제 데이터를 바꾸기 때문에, 엉뚱한 데이터베이스나 스키마에서 실행하면
+다른 데이터가 바뀌거나 테이블이 잘못된 곳에 만들어질 수 있다.
+또 DBeaver에서 여러 줄을 선택한 채 실행하면 의도하지 않은 SQL까지 함께 실행될 수 있으므로,
+어떤 연결에서 어떤 문장을 실행하는지 먼저 확인해야 한다.
 ```
 
 ---
@@ -56,13 +59,13 @@ SHOW transaction_read_only;
 ## 2-1. 실행 전 예상
 
 ```text
-테이블 이름:
-한 행의 의미:
-예상 행 수:
-기본키:
-필수 열:
-중복을 막는 열:
-자동 생성 열:
+테이블 이름: public.students
+한 행의 의미: 학생 한 명
+예상 행 수: 0 (테이블 구조만 만들고 아직 데이터는 넣지 않았으므로)
+기본키: id
+필수 열: id, name, email, created_at (NOT NULL)
+중복을 막는 열: email (UNIQUE), id (PRIMARY KEY)
+자동 생성 열: id (GENERATED AS IDENTITY, 번호 자동 부여), created_at (DEFAULT CURRENT_TIMESTAMP, 입력 시각 자동 저장)
 ```
 
 ## 2-2. 실행 파일
@@ -74,26 +77,28 @@ code/chapter04/01_create_students.sql
 ## 2-3. 실행 후 확인
 
 ```text
-테이블 생성 성공 여부:
-실제 행 수:
-DBeaver에서 확인한 위치:
+테이블 생성 성공 여부: 성공 (오류 없이 CREATE TABLE 완료)
+실제 행 수: 0
+DBeaver에서 확인한 위치: ai_database_book → ai_database_book → public → Tables → students
 ```
 
 ### 각 열의 역할
 
 | 열 | 타입 | NULL 가능? | 역할 |
 | --- | --- | --- | --- |
-| id |  |  |  |
-| name |  |  |  |
-| email |  |  |  |
-| major |  |  |  |
-| grade |  |  |  |
-| created_at |  |  |  |
+| id | integer | NO | 학생 행을 구분하는 기본키. 값을 안 넣으면 자동으로 번호가 부여된다 |
+| name | character varying(50) | NO | 학생 이름. 반드시 입력해야 한다 |
+| email | character varying(100) | NO | 학생 이메일. 필수이며 다른 학생과 중복될 수 없다(UNIQUE) |
+| major | character varying(100) | YES | 전공. 아직 정해지지 않았으면 비워 둘 수 있다 |
+| grade | integer | YES | 학년. 아직 모르면 비워 둘 수 있다 |
+| created_at | timestamp with time zone | NO | 행이 입력된 시각. 값을 안 넣으면 현재 시각이 자동으로 들어간다 |
 
 ### `id`를 학번이나 학생 수로 해석하면 안 되는 이유
 
 ```text
-
+id는 DB가 행을 구분하려고 자동으로 붙이는 내부 번호일 뿐, 학교에서 부여한 학번이 아니다.
+또 학생을 삭제하거나 입력이 실패해도 이미 쓴 번호는 다시 채워지지 않기 때문에,
+id가 6이라고 해서 학생이 6명이라는 뜻도 아니다. 학생 수는 COUNT(*)로 따로 세어야 한다.
 ```
 
 ### 증거 화면
@@ -113,9 +118,9 @@ assignments/chapter04/images/step02_table.png
 ## 3-1. 실행 전 예상
 
 ```text
-현재 행 수:
-실행 후 예상 행 수:
-예상되는 NULL 포함 학생:
+현재 행 수: 0
+실행 후 예상 행 수: 6
+예상되는 NULL 포함 학생: 윤서진 (이름과 이메일만 입력하고 전공과 학년을 생략했으므로 major, grade가 NULL)
 ```
 
 ## 3-2. 실행 파일
@@ -127,24 +132,27 @@ code/chapter04/02_insert_students.sql
 ## 3-3. 실제 결과
 
 ```text
-실제 행 수:
-이준호 grade:
-박서연 존재 여부:
-윤서진 major:
-윤서진 grade:
+실제 행 수: 6
+이준호 grade: 3
+박서연 존재 여부: 존재함 (경영학, 1학년)
+윤서진 major: NULL
+윤서진 grade: NULL
 ```
 
 ### 예상과 실제 비교
 
 ```text
-예상과 실제가 일치했는가:
-다르다면 이유:
+예상과 실제가 일치했는가: 일치했다. 6명이 입력되었고, 윤서진만 major와 grade가 NULL이었다.
+다르다면 이유: 해당 없음
 ```
 
 ### `created_at` 값이 여러 행에서 같을 수 있는 이유
 
 ```text
-
+created_at은 값을 넣지 않으면 CURRENT_TIMESTAMP가 자동으로 들어가는데,
+CURRENT_TIMESTAMP는 SQL이 실행된 순간이 아니라 트랜잭션이 시작된 시각을 기준으로 한다.
+그래서 같은 트랜잭션 안에서 여러 행을 한꺼번에 넣으면, 예를 들어 이준호부터 정하늘까지 4명을 한 번의 INSERT로 넣으면
+모두 같은 시각이 저장될 수 있다. 시각이 같다고 해서 오류가 있는 것은 아니다.
 ```
 
 ---
@@ -155,31 +163,37 @@ code/chapter04/02_insert_students.sql
 
 | 번호 | 조회 문제 | 예상 행 수 | 실제 행 수 | 일치? | 다르면 이유 |
 | ---: | --- | ---: | ---: | --- | --- |
-| 1 | 전체 학생 |  |  |  |  |
-| 2 | 이름·이메일만 조회 |  |  |  |  |
-| 3 | 특정 전공 |  |  |  |  |
-| 4 | 특정 학년 이상 |  |  |  |  |
-| 5 | 두 전공 중 하나 |  |  |  |  |
-| 6 | `grade IS NULL` |  |  |  |  |
-| 7 | 전공 `DISTINCT` |  |  |  |  |
-| 8 | 정렬 후 상위 3명 |  |  |  |  |
+| 1 | 전체 학생 | 6 | 6 | 일치 | |
+| 2 | 이름·이메일만 조회 | 6 | 6 | 일치 | 열만 줄었고 행 수는 그대로 |
+| 3 | 특정 전공 (컴퓨터공학) | 2 | 2 | 일치 | |
+| 4 | 특정 학년 이상 (3학년 이상) | 2 | 2 | 일치 | 윤서진(NULL)은 비교 대상에서 빠짐 |
+| 5 | 두 전공 중 하나 (컴퓨터공학, 경영학) | 3 | 3 | 일치 | |
+| 6 | `grade IS NULL` | 1 | 1 | 일치 | |
+| 7 | 전공 `DISTINCT` | 5 | 5 | 일치 | 전공 4종류 + NULL 1행 |
+| 8 | 정렬 후 상위 3명 (id 순) | 3 | 3 | 일치 | |
 
 ## 4-1. 내가 직접 작성한 SQL 2개
 
 ```sql
--- SQL 1
-
+-- SQL 1: 2학년 학생만 이름순으로 조회
+SELECT id, name, major, grade
+FROM public.students
+WHERE grade = 2
+ORDER BY name;
 ```
 
 ```text
-이 SQL의 한 행 의미:
-예상 행 수:
-실제 행 수:
+이 SQL의 한 행 의미: 2학년 학생 한 명
+예상 행 수: 2 (김민지, 정하늘)
+실제 행 수: 2
 ```
 
 ```sql
--- SQL 2
-
+-- SQL 2: 전공별 학생 수 세기
+SELECT major, COUNT(*) AS student_count
+FROM public.students
+GROUP BY major
+ORDER BY student_count DESC;
 ```
 
 ```text
